@@ -5,6 +5,9 @@ on:
     - cron: '0 9 * * *'   # 4:00 AM EST = 09:00 UTC
   workflow_dispatch:        # allows manual run from GitHub UI anytime
 
+permissions:
+  contents: write
+
 jobs:
   price-check:
     runs-on: ubuntu-latest
