@@ -28,6 +28,12 @@ EXCLUDE = [
     "frame kit","motorized lift","tv lift","remote only",
 ]
 
+def _extract_sku(url):
+    if not url: return None
+    m = re.search(r'skuId=(\d+)|/(\d{7,8})\.p', str(url))
+    return (m.group(1) or m.group(2)) if m else None
+
+
 def make_url(name, sku):
     slug = re.sub(r'[^a-z0-9\s-]', '', name.lower().strip())
     slug = re.sub(r'\s+', '-', slug)
@@ -147,11 +153,6 @@ GREEN_BG= "DCFCE7"; GREEN_FG="15803D"
 RED_BG  = "FEE2E2"; RED_FG ="DC2626"
 AMBER_L = "FFFBEB"; AMBER  ="F59E0B"
 NAVY    = "0D1B2A"; WHITE  ="FFFFFF"
-
-def _extract_sku(url):
-    if not url: return None
-    m = re.search(r'skuId=(\d+)|/(\d{7,8})\.p', str(url))
-    return (m.group(1) or m.group(2)) if m else None
 
 
 for ws in wb.worksheets:
