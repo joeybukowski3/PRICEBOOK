@@ -22,7 +22,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install requests openpyxl
+       run: pip install requests openpyxl gspread google-auth
 
       - name: Run PriceBook check (Refrigerators + TVs)
         env:
@@ -31,12 +31,13 @@ jobs:
           NOTIFY_EMAIL:    ${{ secrets.NOTIFY_EMAIL }}
         run: python daily_price_check.py
 
-      - name: Run OPENCLAW check (Active BB links)
+      - name: Run OPENCLAW check (Google Sheets)
         env:
-          BESTBUY_API_KEY: ${{ secrets.BESTBUY_API_KEY }}
-          RESEND_API_KEY:  ${{ secrets.RESEND_API_KEY }}
-          NOTIFY_EMAIL:    ${{ secrets.NOTIFY_EMAIL }}
-        run: python openclaw_price_check.py
+          BESTBUY_API_KEY:    ${{ secrets.BESTBUY_API_KEY }}
+          RESEND_API_KEY:     ${{ secrets.RESEND_API_KEY }}
+          NOTIFY_EMAIL:       ${{ secrets.NOTIFY_EMAIL }}
+          GSHEET_CREDENTIALS: ${{ secrets.GSHEET_CREDENTIALS }}
+        run: python openclaw_gsheets.py
 
       - name: Commit updated files back to repo
         run: |
