@@ -22,7 +22,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-       run: pip install requests openpyxl gspread google-auth
+        run: pip install requests openpyxl gspread google-auth
 
       - name: Run PriceBook check (Refrigerators + TVs)
         env:
@@ -39,10 +39,10 @@ jobs:
           GSHEET_CREDENTIALS: ${{ secrets.GSHEET_CREDENTIALS }}
         run: python openclaw_gsheets.py
 
-      - name: Commit updated files back to repo
+      - name: Commit updated PriceBook Excel back to repo
         run: |
           git config user.name  "Price Bot"
           git config user.email "bot@pricebook"
-          git add PriceBook_Combined_Final.xlsx GITHUBOPENCLAWPRICECHECK.xlsx
+          git add PriceBook_Combined_Final.xlsx
           git diff --staged --quiet || git commit -m "Price check — $(date +'%m/%d/%Y')"
           git push
