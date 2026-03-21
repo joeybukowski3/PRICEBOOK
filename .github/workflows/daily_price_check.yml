@@ -42,6 +42,6 @@ jobs:
         run: |
           git config user.name  "Price Bot"
           git config user.email "bot@pricebook"
-          git add PriceBook_Combined_Final.xlsx OPENCLAWPRICECHECK.xlsx
+          git add PriceBook_Combined_Final.xlsx GITHUBOPENCLAWPRICECHECK.xlsx
           git diff --staged --quiet || git commit -m "Price check — $(date +'%m/%d/%Y')"
           git push
