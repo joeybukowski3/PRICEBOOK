@@ -5,9 +5,8 @@ Run from your OPENCLAWPRICES folder
 
 Usage: python openclaw_price_check.py
 """
-import requests, re, time, os, sys
+import requests, re, time, os, json
 import openpyxl
-sys.stdout.reconfigure(encoding='utf-8')
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from datetime import date
 
@@ -54,6 +53,95 @@ def clean_sku(raw):
     m = re.search(r'skuId=(\d+)|/(\d{7,8})\.p', s)
     if m: return m.group(1) or m.group(2)
     return None
+
+
+# ── SEND EMAIL ────────────────────────────────────────────────────────────────
+def send_email(checked, unchanged, changed, oos, not_found, errors, changes, today):
+    resend_key   = os.environ.get('RESEND_API_KEY','')
+    notify_email = os.environ.get('NOTIFY_EMAIL','')
+    if not resend_key or not notify_email:
+        print("No RESEND_API_KEY or NOTIFY_EMAIL set — skipping email")
+        return
+
+    rows_html = ""
+    if changes:
+        for itype, name, old, new, pct in sorted(changes, key=lambda x: abs(x[4]), reverse=True):
+            color = "#DC2626" if new > old else "#15803D"
+            bg    = "#FFF7ED" if new > old else "#DCFCE7"
+            arrow = "📈" if new > old else "📉"
+            rows_html += f"""
+            <tr style="background:{bg}">
+              <td style="padding:6px 10px;font-size:12px;color:#374151">{itype}</td>
+              <td style="padding:6px 10px;font-size:12px;color:#374151">{(name or '')[:45]}</td>
+              <td style="padding:6px 10px;font-size:12px;text-align:center">${old:.2f}</td>
+              <td style="padding:6px 10px;font-size:12px;text-align:center;font-weight:bold;color:{color}">${new:.2f}</td>
+              <td style="padding:6px 10px;font-size:12px;text-align:center;font-weight:bold;color:{color}">{arrow} {pct:+.1f}%</td>
+            </tr>"""
+    else:
+        rows_html = '<tr><td colspan="5" style="padding:12px;text-align:center;color:#6B7280">No price changes today</td></tr>'
+
+    html = f"""
+    <div style="font-family:Arial,sans-serif;max-width:700px;margin:0 auto">
+      <div style="background:#0D1B2A;padding:20px;border-radius:8px 8px 0 0">
+        <h2 style="color:white;margin:0">📊 OPENCLAW Daily Price Check</h2>
+        <p style="color:#9CA3AF;margin:4px 0 0">{today}</p>
+      </div>
+      <div style="background:#F9FAFB;padding:20px;border:1px solid #E5E7EB">
+        <div style="display:flex;gap:12px;margin-bottom:20px">
+          <div style="flex:1;background:white;border:1px solid #E5E7EB;border-radius:6px;padding:12px;text-align:center">
+            <div style="font-size:24px;font-weight:bold;color:#0D1B2A">{checked}</div>
+            <div style="font-size:11px;color:#6B7280">Checked</div>
+          </div>
+          <div style="flex:1;background:#DCFCE7;border:1px solid #BBF7D0;border-radius:6px;padding:12px;text-align:center">
+            <div style="font-size:24px;font-weight:bold;color:#15803D">{unchanged}</div>
+            <div style="font-size:11px;color:#15803D">Unchanged</div>
+          </div>
+          <div style="flex:1;background:{'#FFF7ED' if changed else '#F9FAFB'};border:1px solid {'#FED7AA' if changed else '#E5E7EB'};border-radius:6px;padding:12px;text-align:center">
+            <div style="font-size:24px;font-weight:bold;color:#{'EA580C' if changed else '6B7280'}">{changed}</div>
+            <div style="font-size:11px;color:#{'EA580C' if changed else '6B7280'}">Changed</div>
+          </div>
+          <div style="flex:1;background:#FEE2E2;border:1px solid #FECACA;border-radius:6px;padding:12px;text-align:center">
+            <div style="font-size:24px;font-weight:bold;color:#DC2626">{not_found + oos}</div>
+            <div style="font-size:11px;color:#DC2626">OOS/Not Found</div>
+          </div>
+        </div>
+        <table style="width:100%;border-collapse:collapse;background:white;border:1px solid #E5E7EB;border-radius:6px;overflow:hidden">
+          <thead>
+            <tr style="background:#1F2937">
+              <th style="padding:8px 10px;text-align:left;color:white;font-size:11px">Type</th>
+              <th style="padding:8px 10px;text-align:left;color:white;font-size:11px">Item</th>
+              <th style="padding:8px 10px;text-align:center;color:white;font-size:11px">Listed</th>
+              <th style="padding:8px 10px;text-align:center;color:white;font-size:11px">Today</th>
+              <th style="padding:8px 10px;text-align:center;color:white;font-size:11px">Change</th>
+            </tr>
+          </thead>
+          <tbody>{rows_html}</tbody>
+        </table>
+        <p style="font-size:11px;color:#9CA3AF;margin-top:16px">
+          OPENCLAWPRICECHECK.xlsx updated — pull from GitHub to see full tracker.
+        </p>
+      </div>
+    </div>"""
+
+    payload = {
+        "from":    "PriceCheck <onboarding@resend.dev>",
+        "to":      [notify_email],
+        "subject": f"OPENCLAW Price Check — {today} | {changed} changes",
+        "html":    html,
+    }
+    try:
+        resp = requests.post(
+            "https://api.resend.com/emails",
+            headers={"Authorization": f"Bearer {resend_key}",
+                     "Content-Type": "application/json"},
+            data=json.dumps(payload), timeout=15,
+        )
+        if resp.status_code in (200, 201):
+            print(f"Email sent to {notify_email}")
+        else:
+            print(f"Email failed: {resp.status_code}")
+    except Exception as e:
+        print(f"Email error: {e}")
 
 # ── LOAD WORKBOOK ─────────────────────────────────────────────────────────────
 wb = openpyxl.load_workbook(EXCEL_FILE)
@@ -185,4 +273,5 @@ if changes:
     for itype, name, old, new, pct in sorted(changes, key=lambda x: abs(x[4]), reverse=True):
         print(f"  {itype} | {(name or '')[:35]} | ${old:.2f}→${new:.2f} ({pct:+.1f}%)")
 print(f"{'='*55}")
+send_email(checked, unchanged, changed, oos, not_found, errors, changes, TODAY_LABEL)
 print(f"Saved: {EXCEL_FILE}")
