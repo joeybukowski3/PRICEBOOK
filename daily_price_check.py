@@ -234,10 +234,14 @@ if change_log:
     for c in sorted(change_log, key=lambda x: abs(x['pct']), reverse=True):
         color   = "#DC2626" if c['diff'] > 0 else "#15803D"
         bg      = "#FFF7ED" if c['diff'] > 0 else "#DCFCE7"
+        sku  = results.get(c['eid'],{}).get('sku','—')
+        burl = results.get(c['eid'],{}).get('bb_url','')
+        sku_link = f'<a href="{burl}" style="color:#2563EB;font-size:10px">{sku}</a>' if burl else sku
         rows_html += f"""
         <tr style="background:{bg}">
           <td style="padding:6px 10px;font-size:12px;color:#374151">{c['eid']}</td>
           <td style="padding:6px 10px;font-size:12px;color:#374151">{c['name']}</td>
+          <td style="padding:6px 10px;font-size:12px;text-align:center;color:#6B7280">{sku_link}</td>
           <td style="padding:6px 10px;font-size:12px;text-align:center">${c['baseline']:.2f}</td>
           <td style="padding:6px 10px;font-size:12px;text-align:center;font-weight:bold;color:{color}">${c['current']:.2f}</td>
           <td style="padding:6px 10px;font-size:12px;text-align:center;font-weight:bold;color:{color}">{c['dir']} {c['pct']:+.1f}%</td>
@@ -275,6 +279,7 @@ html = f"""
         <tr style="background:#1F2937">
           <th style="padding:8px 10px;text-align:left;color:white;font-size:11px">ID</th>
           <th style="padding:8px 10px;text-align:left;color:white;font-size:11px">Item</th>
+          <th style="padding:8px 10px;text-align:center;color:white;font-size:11px">SKU</th>
           <th style="padding:8px 10px;text-align:center;color:white;font-size:11px">Baseline</th>
           <th style="padding:8px 10px;text-align:center;color:white;font-size:11px">Today</th>
           <th style="padding:8px 10px;text-align:center;color:white;font-size:11px">Change</th>
@@ -283,8 +288,11 @@ html = f"""
       <tbody>{rows_html}</tbody>
     </table>
     <p style="font-size:11px;color:#9CA3AF;margin-top:16px">
-      PriceBook_Combined_Final.xlsx updated with today's prices — column {TODAY_LABEL} added.
-      Pull the latest file from your GitHub repo to see the full tracker.
+      PriceBook_Combined_Final.xlsx updated — column {TODAY_LABEL} added. &nbsp;
+      <a href="https://github.com/joeybukowski3/PRICEBOOK/raw/main/PriceBook_Combined_Final.xlsx" 
+         style="color:#2563EB;font-weight:bold">⬇ Download Latest Excel</a>
+      &nbsp;|&nbsp;
+      <a href="https://github.com/joeybukowski3/PRICEBOOK" style="color:#2563EB">View Repo</a>
     </p>
   </div>
 </div>
